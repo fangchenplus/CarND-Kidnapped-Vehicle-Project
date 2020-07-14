@@ -20,6 +20,7 @@
 
 using std::string;
 using std::vector;
+using std::normal_distribution;
 
 void ParticleFilter::init(double x, double y, double theta, double std[]) {
   /**
@@ -30,7 +31,45 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
    * NOTE: Consult particle_filter.h for more information about this method 
    *   (and others in this file).
    */
-  num_particles = 0;  // TODO: Set the number of particles
+  num_particles = 10;  // TODO: Set the number of particles
+  
+  std::default_random_engine gen;
+  double std_x, std_y, std_theta;  // Standard deviations for x, y, and theta
+
+  // Set standard deviations for x, y, and theta
+  std_x = std[0];
+  std_y = std[1];
+  std_theta = std[2]; 
+
+  // Creates normal (Gaussian) distributions for x, y and theta
+  normal_distribution<double> dist_x(x, std_x);
+  normal_distribution<double> dist_y(y, std_y);
+  normal_distribution<double> dist_theta(theta, std_theta);
+
+  for (int i = 0; i < num_particles; ++i) {
+    double sample_x, sample_y, sample_theta;
+    
+    // Sample from these normal distributions like this: 
+    //   sample_x = dist_x(gen);
+    //   where "gen" is the random engine initialized earlier.
+    sample_x = dist_x(gen);
+    sample_y = dist_y(gen);
+    sample_theta = dist_theta(gen);   
+     
+    // Print your samples to the terminal.
+    // std::cout << "Sample " << i + 1 << " " << sample_x << " " << sample_y << " " 
+              // << sample_theta << std::endl;
+			  
+	Particle p;
+	p.x = sample_x;
+	p.y = sample_y;
+	p.theta = sample_theta;
+	p.weight = 1.0;
+	
+	particles.push_back(p);
+  }
+  
+  is_initialized = true;
 
 }
 
@@ -43,6 +82,43 @@ void ParticleFilter::prediction(double delta_t, double std_pos[],
    *  http://en.cppreference.com/w/cpp/numeric/random/normal_distribution
    *  http://www.cplusplus.com/reference/random/default_random_engine/
    */
+  std::default_random_engine gen;
+  double std_x, std_y, std_theta;  // Standard deviations for x, y, and theta
+
+  // Set standard deviations for x, y, and theta
+  std_x = std_pos[0];
+  std_y = std_pos[1];
+  std_theta = std_pos[2]; 
+
+  // Creates normal (Gaussian) distributions for x, y and theta
+  normal_distribution<double> dist_x(0.0, std_x);
+  normal_distribution<double> dist_y(0.0, std_y);
+  normal_distribution<double> dist_theta(0.0, std_theta);
+  
+  
+
+  for (int i = 0; i < num_particles; ++i) {
+    double sample_x, sample_y, sample_theta;
+    
+    // Sample from these normal distributions like this: 
+    //   sample_x = dist_x(gen);
+    //   where "gen" is the random engine initialized earlier.
+    sample_x = dist_x(gen);
+    sample_y = dist_y(gen);
+    sample_theta = dist_theta(gen);   
+    
+	double theta0, theta_new;
+	theta0 = particles[i].theta;
+	theta_new = theta0 + yaw_rate*delta_t;
+	
+	particles[i].x += velocity/yaw_rate* ( sin(theta_new) - sin(theta0) ) ;
+	particles[i].y += velocity/yaw_rate* ( cos(theta0) - cos(theta_new) ) ;
+	particles[i].theta = theta_new ;
+	
+	particles[i].x += sample_x;
+	particles[i].y += sample_y;
+	particles[i].theta += sample_theta;
+  }   
 
 }
 
